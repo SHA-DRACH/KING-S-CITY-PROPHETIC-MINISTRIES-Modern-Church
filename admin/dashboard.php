@@ -104,7 +104,7 @@ admin_header('Dashboard', 'dashboard');
       <p>Here is what is happening at <?= e(setting('church_name')) ?> today, <?= date('l, F j') ?>.</p>
     <?php endif; ?>
   </div>
-  <img src="<?= e(asset('images/logo.svg')) ?>" alt="" class="banner-logo" width="110" height="110">
+  <?= logo_img(120, 'banner-logo') ?>
 </section>
 
 <?php if ($cards): ?>

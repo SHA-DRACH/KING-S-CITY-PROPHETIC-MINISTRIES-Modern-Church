@@ -63,8 +63,9 @@ function admin_header(string $title, string $active = '', array $opts = []): voi
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
+<meta name="base-url" content="<?= e(base_url()) ?>">
 <title><?= e($title) ?> · Admin · <?= e(setting('church_name', "King's City")) ?></title>
-<link rel="icon" href="<?= e(media_url(setting('favicon'), 'assets/images/favicon.svg')) ?>">
+<link rel="icon" href="<?= e(favicon_url()) ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
@@ -75,7 +76,7 @@ function admin_header(string $title, string $active = '', array $opts = []): voi
 <a class="skip-link" href="#main">Skip to content</a>
 <aside class="sidebar" id="sidebar" aria-label="Admin navigation">
   <a class="sidebar-brand" href="<?= e(url('admin/dashboard.php')) ?>">
-    <img src="<?= e(media_url(setting('logo'), 'assets/images/logo.svg')) ?>" alt="" width="40" height="40">
+    <?= logo_img(44) ?>
     <span><strong><?= e(setting('church_short_name', "King's City")) ?></strong><small>Admin Panel</small></span>
   </a>
   <nav class="sidebar-nav">

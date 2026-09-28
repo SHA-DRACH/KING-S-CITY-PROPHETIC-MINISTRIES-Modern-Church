@@ -20,7 +20,7 @@ $churchSchema = [
     'alternateName' => setting('church_short_name'),
     'description' => setting('seo_description'),
     'url'       => url(),
-    'logo'      => media_url(setting('logo'), 'assets/images/logo.svg'),
+    'logo'      => logo_url(),
     'image'     => $ogImage,
     'telephone' => setting('phone'),
     'email'     => setting('email'),
@@ -50,7 +50,7 @@ $isLive = setting('is_live') === '1';
 <meta name="keywords" content="<?= e(setting('seo_keywords')) ?>">
 <link rel="canonical" href="<?= e($canonical) ?>">
 <meta name="theme-color" content="#071B35">
-<link rel="icon" href="<?= e(media_url(setting('favicon'), 'assets/images/favicon.svg')) ?>">
+<link rel="icon" href="<?= e(favicon_url()) ?>">
 <!-- Open Graph / Twitter -->
 <meta property="og:site_name" content="<?= e($siteName) ?>">
 <meta property="og:type" content="<?= e($page['type']) ?>">

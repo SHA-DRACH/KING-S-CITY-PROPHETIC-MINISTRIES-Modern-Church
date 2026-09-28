@@ -21,7 +21,7 @@ if (!empty($_GET['partial'])) {
 
 $page = ['title' => 'Sermons', 'nav' => 'sermons', 'description' => 'Watch, listen to and download sermons by Prophet Mark Dorbor and guest ministers at ' . setting('church_name') . '.'];
 require __DIR__ . '/includes/header.php';
-echo page_banner('Sermons', 'Be blessed by the Word of God.');
+echo page_banner('Sermons', 'Be blessed by the Word of God.', 'assets/images/placeholders/bible.svg', [], 'sermons');
 ?>
 <section class="section">
   <div class="container">

@@ -18,7 +18,7 @@ CREATE DATABASE IF NOT EXISTS kings_city CHARACTER SET utf8mb4 COLLATE utf8mb4_u
 USE kings_city;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS rate_limits, password_resets, activity_logs, contact_messages, social_links, church_settings,
+DROP TABLE IF EXISTS photo_albums, rate_limits, password_resets, activity_logs, contact_messages, social_links, church_settings,
   service_times, hero_videos, media, pastor_profiles, leaders, giving_transactions, giving_methods, giving_categories,
   testimonies, prayer_requests, gallery, gallery_categories, pages, announcements, events, event_categories,
   sermons, sermon_categories, department_users, departments, user_permissions, users, role_permissions,
@@ -233,22 +233,53 @@ CREATE TABLE gallery_categories (
   sort_order SMALLINT NOT NULL DEFAULT 0
 ) ENGINE=InnoDB;
 
+-- Albums group bulk-uploaded photos by a day or a month.
+--   downloads = members find and download their own photos
+--   event     = reference gallery of events and ministry life
+CREATE TABLE photo_albums (
+  id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  title          VARCHAR(200) NULL COMMENT 'Optional — the date is shown when empty',
+  album_date     DATE NOT NULL,
+  date_precision ENUM('day','month') NOT NULL DEFAULT 'day',
+  type           ENUM('downloads','event') NOT NULL DEFAULT 'downloads',
+  category_id    INT UNSIGNED NULL,
+  department_id  INT UNSIGNED NULL,
+  description    VARCHAR(300) NULL,
+  allow_download TINYINT(1) NOT NULL DEFAULT 1,
+  is_published   TINYINT(1) NOT NULL DEFAULT 1,
+  cover_id       INT UNSIGNED NULL,
+  created_by     INT UNSIGNED NULL,
+  created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (category_id) REFERENCES gallery_categories(id) ON DELETE SET NULL,
+  FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
+  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_album_pub (is_published, type, album_date)
+) ENGINE=InnoDB;
+
 CREATE TABLE gallery (
-  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  title         VARCHAR(200) NOT NULL,
-  category_id   INT UNSIGNED NULL,
-  department_id INT UNSIGNED NULL,
-  media_type    ENUM('image','video') NOT NULL DEFAULT 'image',
-  file_path     VARCHAR(255) NULL,
-  video_url     VARCHAR(255) NULL,
-  caption       VARCHAR(300) NULL,
-  is_published  TINYINT(1) NOT NULL DEFAULT 1,
-  uploaded_by   INT UNSIGNED NULL,
-  created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  album_id       INT UNSIGNED NULL,
+  title          VARCHAR(200) NULL,
+  category_id    INT UNSIGNED NULL,
+  department_id  INT UNSIGNED NULL,
+  media_type     ENUM('image','video') NOT NULL DEFAULT 'image',
+  file_path      VARCHAR(255) NULL,
+  thumb_path     VARCHAR(255) NULL,
+  width          SMALLINT UNSIGNED NULL,
+  height         SMALLINT UNSIGNED NULL,
+  video_url      VARCHAR(255) NULL,
+  caption        VARCHAR(300) NULL,
+  is_published   TINYINT(1) NOT NULL DEFAULT 1,
+  download_count INT UNSIGNED NOT NULL DEFAULT 0,
+  uploaded_by    INT UNSIGNED NULL,
+  created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (album_id) REFERENCES photo_albums(id) ON DELETE CASCADE,
   FOREIGN KEY (category_id) REFERENCES gallery_categories(id) ON DELETE SET NULL,
   FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
   FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_gallery_album (album_id, id),
   INDEX idx_gallery_pub (is_published, created_at)
 ) ENGINE=InnoDB;
 
@@ -266,8 +297,10 @@ CREATE TABLE media (
   INDEX idx_media_type (file_type, created_at)
 ) ENGINE=InnoDB;
 
+-- One active background video per public page (home, about, sermons, …)
 CREATE TABLE hero_videos (
   id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  page        VARCHAR(40) NOT NULL DEFAULT 'home',
   title       VARCHAR(160) NOT NULL,
   description VARCHAR(300) NULL,
   video_mp4   VARCHAR(255) NULL,
@@ -278,7 +311,8 @@ CREATE TABLE hero_videos (
   uploaded_by INT UNSIGNED NULL,
   created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
+  FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_hero_page (page, is_active)
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------
@@ -700,6 +734,11 @@ INSERT INTO gallery (title, category_id, media_type, file_path, caption, uploade
 UPDATE gallery SET department_id = 5 WHERE title = 'Youth Fellowship';
 UPDATE gallery SET department_id = 6 WHERE title = 'Women''s Fellowship';
 
+-- Group the sample photos into reference ("event") albums, one per category
+INSERT INTO photo_albums (title, album_date, type, category_id, created_by)
+  SELECT c.name, '2026-09-20', 'event', c.id, 2 FROM gallery_categories c WHERE c.id IN (SELECT category_id FROM gallery);
+UPDATE gallery g JOIN photo_albums a ON a.category_id = g.category_id SET g.album_id = a.id;
+
 -- =====================================================================
 --  SEED: SETTINGS
 -- =====================================================================
@@ -715,8 +754,8 @@ INSERT INTO church_settings (setting_key, setting_value, setting_group) VALUES
  ('city','Paynesville, Monrovia','contact'),
  ('country','Liberia','contact'),
  ('map_query','Omega Community, Paynesville, Monrovia, Liberia','contact'),
- ('logo','assets/images/logo.svg','branding'),
- ('favicon','assets/images/favicon.svg','branding'),
+ ('logo','assets/images/logo.jpg','branding'),
+ ('favicon','assets/images/logo.jpg','branding'),
  ('footer_text','A Christ-centred apostolic and prophetic church in Paynesville, Monrovia — reaching people, transforming lives and building faith.','branding'),
  ('hero_eyebrow','Welcome to','homepage'),
  ('hero_scripture','For I know the plans I have for you…','homepage'),
@@ -737,7 +776,7 @@ INSERT INTO church_settings (setting_key, setting_value, setting_group) VALUES
  ('maintenance_mode','0','system'),
  ('session_timeout_minutes','30','system'),
  ('max_login_attempts','5','system'),
- ('max_video_upload_mb','200','system'),
+ ('max_video_upload_mb','1024','system'),
  ('prayer_wall_enabled','1','system');
 
 INSERT INTO social_links (platform, url, icon, sort_order) VALUES

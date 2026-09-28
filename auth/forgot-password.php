@@ -35,10 +35,9 @@ if ($devLink): ?>
 <?php endif; ?>
 <form method="post" data-once novalidate>
   <?= csrf_field() ?>
-  <div class="mb-4"><label class="form-label" for="email">Email address</label>
-    <input type="email" class="form-control form-control-lg" id="email" name="email" required autocomplete="email" autofocus></div>
-  <button type="submit" class="btn btn-gold btn-lg w-100"><i class="fa-solid fa-paper-plane"></i> Send Reset Link</button>
+  <?= auth_input('email', 'Email address', 'fa-envelope', 'email', 'email', '', true) ?>
+  <button type="submit" class="auth-btn mt-2"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Send Reset Link</button>
 </form>
-<p class="text-center mt-4 mb-0"><a class="small" href="<?= e(url('admin/login.php')) ?>">Back to sign in</a></p>
+<p class="auth-row justify-content-center mt-3 mb-0"><a href="<?= e(url('admin/login.php')) ?>">Back to sign in</a></p>
 <?php
 auth_layout_end();

@@ -62,6 +62,52 @@
     return res.json().catch(() => ({ ok: false, message: res.status === 413 ? 'The file is too large for the server.' : 'Unexpected server response (' + res.status + ').' }));
   }
 
+  /* ---------- Chunked uploads for large video/audio files ----------
+     Each chosen file is sent to admin/upload-chunk.php in 5 MB pieces (no server
+     size limit is hit). The file input is then disabled and replaced by a hidden
+     "<name>__chunked" token that the normal form submit sends instead. */
+  const baseUrl = () => $('meta[name="base-url"]')?.content || '';
+  const CHUNK = 5 * 1024 * 1024;
+
+  async function uploadChunked(form, report) {
+    const inputs = $$('input[type=file][data-chunked]', form).filter(i => i.files.length && !i.disabled);
+    for (const input of inputs) {
+      const file = input.files[0];
+      const total = Math.max(1, Math.ceil(file.size / CHUNK));
+      const id = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+      let res = null;
+      for (let i = 0; i < total; i++) {
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const fd = new FormData();
+          [['_token', csrf()], ['upload_id', id], ['index', i], ['total', total], ['name', file.name], ['size', file.size],
+            ['type', input.dataset.chunked], ['dir', input.dataset.dir || 'videos']].forEach(([k, v]) => fd.append(k, v));
+          fd.append('chunk', file.slice(i * CHUNK, (i + 1) * CHUNK), 'chunk');
+          try {
+            const r = await fetch(baseUrl() + '/admin/upload-chunk.php', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+            res = await r.json().catch(() => ({ ok: false, message: 'Upload failed (' + r.status + ').' }));
+            if (res.ok || r.status === 422 || r.status === 403) { break; }
+          } catch (e) {
+            res = { ok: false, message: 'Network error while uploading ' + file.name + '.' };
+          }
+        }
+        if (!res.ok) { throw new Error(res.message || 'Upload failed.'); }
+        report && report(file.name, Math.round((i + 1) / total * 100));
+      }
+      let hidden = form.querySelector(`input[name="${input.name}__chunked"]`);
+      if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden'; hidden.name = input.name + '__chunked'; hidden.dataset.chunkToken = '1';
+        form.appendChild(hidden);
+      }
+      hidden.value = res.token;
+      input.disabled = true;
+    }
+  }
+  function resetChunked(form) {
+    $$('input[data-chunk-token]', form).forEach(h => h.remove());
+    $$('input[type=file][data-chunked]', form).forEach(i => { i.disabled = false; i.value = ''; });
+  }
+
   function setLoading(btn, on) {
     if (!btn) { return; }
     if (on) {
@@ -119,6 +165,7 @@
     initPostActions();
     initPermissionUi();
     initCharts();
+    initGallery();
 
     $$('[data-copy]').forEach(b => b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(b.dataset.copy); toast('Copied to clipboard.', 'info'); } catch (e) { /* ignore */ } }));
     $$('[data-copy-target]').forEach(b => b.addEventListener('click', async () => { try { await navigator.clipboard.writeText($(b.dataset.copyTarget).value); toast('Copied.', 'info'); } catch (e) { /* ignore */ } }));
@@ -215,8 +262,10 @@
         const btn = form.querySelector('[type="submit"]');
         setLoading(btn, true);
         try {
-          const hasFile = Array.from(form.querySelectorAll('input[type=file]')).some(i => i.files.length);
+          await uploadChunked(form, (name, pct) => { btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Uploading video ${pct}%`; });
+          const hasFile = Array.from(form.querySelectorAll('input[type=file]:not(:disabled)')).some(i => i.files.length);
           const data = await postForm(endpoint(), new FormData(form), hasFile ? pct => { btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Uploading ${pct}%`; } : null);
+          resetChunked(form);
           if (data.ok) {
             modal.hide();
             toast('✓ ' + data.message, 'success');
@@ -226,7 +275,7 @@
             toast(data.message || 'Please check the form.', 'error');
           }
         } catch (err) {
-          toast('Network error. Please try again.', 'error');
+          toast(err.message || 'Network error. Please try again.', 'error'); resetChunked(form);
         } finally {
           setLoading(btn, false);
         }
@@ -247,11 +296,17 @@
         const hasFile = Array.from(form.querySelectorAll('input[type=file]')).some(i => i.files.length);
         setLoading(btn, true);
         if (progress && hasFile) { progress.classList.remove('d-none'); }
+        const showPct = (pct, label) => {
+          if (!progress) { btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> ${label} ${pct}%`; return; }
+          progress.classList.remove('d-none');
+          progress.querySelector('.progress-bar').style.width = pct + '%';
+          const t = progress.querySelector('[data-progress-text]'); if (t) { t.textContent = pct < 100 ? `${label}… ${pct}%` : 'Processing…'; }
+        };
         try {
-          const data = await postForm(form.getAttribute('action') || endpoint(), new FormData(form), progress && hasFile ? pct => {
-            progress.querySelector('.progress-bar').style.width = pct + '%';
-            const t = progress.querySelector('[data-progress-text]'); if (t) { t.textContent = pct < 100 ? `Uploading… ${pct}%` : 'Processing…'; }
-          } : null);
+          await uploadChunked(form, (name, pct) => showPct(pct, 'Uploading ' + name));
+          const stillFiles = Array.from(form.querySelectorAll('input[type=file]:not(:disabled)')).some(i => i.files.length);
+          const data = await postForm(form.getAttribute('action') || endpoint(), new FormData(form), stillFiles ? pct => showPct(pct, 'Uploading') : null);
+          resetChunked(form);
           if (data.ok) {
             toast('✓ ' + data.message, 'success');
             const m = form.closest('.modal');
@@ -264,7 +319,7 @@
             toast(data.message || 'Please check the form.', 'error');
           }
         } catch (err) {
-          toast('Network error. Please try again.', 'error');
+          toast(err.message || 'Network error. Please try again.', 'error'); resetChunked(form);
         } finally {
           setLoading(btn, false);
           progress && setTimeout(() => progress.classList.add('d-none'), 600);
@@ -295,7 +350,8 @@
           bootstrap.Modal.getOrCreateInstance(m).show();
         }
         toast(data.message, data.ok ? 'success' : 'error');
-        if (data.ok && !data.temp_password) { data.reload ? setTimeout(() => window.location.reload(), 700) : refreshTable(); }
+        if (data.ok && data.redirect) { setTimeout(() => { window.location.href = data.redirect; }, 700); }
+        else if (data.ok && !data.temp_password) { data.reload ? setTimeout(() => window.location.reload(), 700) : refreshTable(); }
       } catch (err) {
         toast('Network error. Please try again.', 'error');
       } finally {
@@ -359,6 +415,135 @@
         cell.setAttribute('aria-pressed', data.granted ? 'true' : 'false');
         cell.innerHTML = `<i class="fa-solid ${data.granted ? 'fa-check' : 'fa-minus'}"></i>`;
       }
+    });
+  }
+
+  /* ---------- Gallery: bulk photo uploader & album tools ---------- */
+  function initGallery() {
+    // "Specific day" vs "whole month" date inputs
+    document.addEventListener('change', e => {
+      if (e.target.name === 'date_precision') {
+        const scope = e.target.closest('form, [data-precision-scope]') || document;
+        $$('[data-precision]', scope).forEach(el => { el.hidden = el.dataset.precision !== e.target.value; });
+      }
+      if (e.target.name === 'album_mode') {
+        $$('[data-mode]').forEach(el => { el.hidden = el.dataset.mode !== e.target.value; });
+      }
+    });
+
+    const box = $('#bulkUploader');
+    if (box) {
+      const input = $('[data-photo-input]', box);
+      const drop = $('[data-dropzone]', box);
+      const queueEl = $('[data-queue]', box);
+      const grid = $('[data-queue-grid]', box);
+      const startBtn = $('[data-start-upload]', box);
+      let files = [];
+
+      const render = () => {
+        queueEl.hidden = files.length === 0;
+        $('[data-queue-count]', box).textContent = `${files.length} photo${files.length === 1 ? '' : 's'} selected`;
+        startBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Upload ${files.length} photo${files.length === 1 ? '' : 's'}`;
+      };
+      const add = list => {
+        Array.from(list).filter(f => /^image\/(jpeg|png|webp)$/.test(f.type)).forEach(f => {
+          const item = { file: f, el: document.createElement('div') };
+          item.el.className = 'q-item';
+          item.el.innerHTML = '<img alt=""><span class="q-state"></span>';
+          const img = item.el.querySelector('img');
+          img.src = URL.createObjectURL(f);
+          img.onload = () => URL.revokeObjectURL(img.src);
+          grid.appendChild(item.el);
+          files.push(item);
+        });
+        render();
+      };
+      input.addEventListener('change', () => { add(input.files); input.value = ''; });
+      ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+      ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+      drop.addEventListener('drop', e => add(e.dataTransfer.files));
+      $('[data-clear-queue]', box).addEventListener('click', () => { files = []; grid.innerHTML = ''; render(); });
+
+      startBtn.addEventListener('click', async () => {
+        const pending = files.filter(f => !f.done);
+        if (!pending.length) { return; }
+        const endpointUrl = box.dataset.endpoint;
+        const albumForm = $('[data-album-form]', box);
+        clearErrors(albumForm || box);
+        startBtn.disabled = true;
+        let albumId = box.dataset.albumId;
+        try {
+          if (!albumId) {
+            const mode = albumForm.querySelector('[name=album_mode]:checked').value;
+            if (mode === 'existing') {
+              albumId = albumForm.querySelector('[name=existing_album]').value;
+            } else {
+              const fd = new FormData(albumForm); fd.append('action', 'create_album');
+              const res = await postForm(endpointUrl, fd);
+              if (!res.ok) { showErrors(albumForm, res.errors); toast(res.message, 'error'); startBtn.disabled = false; return; }
+              albumId = res.album_id;
+            }
+          }
+          box.dataset.albumId = albumId; // retries go to the same album
+          const bar = $('[data-overall]', box); bar.hidden = false;
+          const text = $('[data-overall-text]', box);
+          let done = 0, failed = 0;
+          const total = pending.length;
+          const next = async () => {
+            while (pending.length) {
+              const item = pending.shift();
+              item.el.classList.add('busy');
+              const fd = new FormData(); fd.append('action', 'upload_photo'); fd.append('album_id', albumId); fd.append('photo', item.file);
+              let res;
+              try { res = await postForm(endpointUrl, fd); } catch (e) { res = { ok: false, message: 'Network error' }; }
+              item.el.classList.remove('busy');
+              item.el.classList.add(res.ok ? 'ok' : 'fail');
+              if (res.ok) { item.done = true; done++; } else { failed++; item.el.title = res.message; }
+              const pct = Math.round((done + failed) / total * 100);
+              bar.firstElementChild.style.width = pct + '%';
+              text.textContent = `${done} uploaded${failed ? `, ${failed} failed` : ''}…`;
+            }
+          };
+          const workers = [next(), next(), next()]; // 3 photos at a time
+          await Promise.all(workers);
+          bar.firstElementChild.style.width = '100%';
+          text.textContent = `${done} photo${done === 1 ? '' : 's'} uploaded${failed ? ` · ${failed} failed (hover a red photo for the reason)` : ''}.`;
+          const fd = new FormData(); fd.append('action', 'upload_done'); fd.append('album_id', albumId); fd.append('count', done);
+          postForm(endpointUrl, fd);
+          toast(`✓ ${done} photo${done === 1 ? '' : 's'} uploaded${failed ? `, ${failed} failed` : ''}.`, failed ? 'info' : 'success');
+          if (!failed) {
+            setTimeout(() => { window.location.href = box.dataset.albumUrl || (endpointUrl + '?album=' + albumId); }, 1200);
+          }
+        } catch (e) {
+          toast(e.message || 'Upload failed.', 'error');
+        } finally {
+          startBtn.disabled = false;
+        }
+      });
+    }
+
+    // Album page: select photos, delete selected, set cover
+    const selectAll = $('[data-select-all]');
+    const delBtn = $('[data-delete-selected]');
+    const syncSel = () => { if (delBtn) { const n = $$('[data-photo-select]:checked').length; delBtn.disabled = n === 0; delBtn.innerHTML = `<i class="fa-solid fa-trash"></i> Delete selected${n ? ' (' + n + ')' : ''}`; } };
+    selectAll && selectAll.addEventListener('change', () => { $$('[data-photo-select]').forEach(c => { c.checked = selectAll.checked; }); syncSel(); });
+    document.addEventListener('change', e => { if (e.target.matches('[data-photo-select]')) { syncSel(); } });
+    delBtn && delBtn.addEventListener('click', async () => {
+      const ids = $$('[data-photo-select]:checked').map(c => c.value);
+      if (!ids.length || !(await confirmDialog(`Delete ${ids.length} selected photo${ids.length === 1 ? '' : 's'}? This cannot be undone.`))) { return; }
+      const fd = new FormData(); fd.append('action', 'delete_photos'); fd.append('album_id', delBtn.dataset.album);
+      ids.forEach(id => fd.append('ids[]', id));
+      const res = await postForm(endpoint(), fd);
+      toast(res.message, res.ok ? 'success' : 'error');
+      if (res.ok) { setTimeout(() => window.location.reload(), 600); }
+    });
+    document.addEventListener('click', async e => {
+      const b = e.target.closest('[data-set-cover]');
+      if (!b) { return; }
+      const fd = new FormData(); fd.append('action', 'set_cover'); fd.append('album_id', b.dataset.album); fd.append('photo_id', b.dataset.setCover);
+      const res = await postForm(endpoint(), fd);
+      toast(res.message, res.ok ? 'success' : 'error');
+      if (res.ok) { setTimeout(() => window.location.reload(), 500); }
     });
   }
 

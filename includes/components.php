@@ -6,6 +6,23 @@
 // ---------------------------------------------------------------------
 //  Shared
 // ---------------------------------------------------------------------
+/** The church logo uploaded in Admin → Church Information (falls back to the bundled badge). */
+function logo_url(): string
+{
+    return media_url(setting('logo'), 'assets/images/logo.jpg');
+}
+
+function favicon_url(): string
+{
+    return media_url(setting('favicon') ?: setting('logo'), 'assets/images/logo.jpg');
+}
+
+/** Circular logo — the round crop removes the white corners of the square image. */
+function logo_img(int $size, string $class = '', string $alt = ''): string
+{
+    return '<img src="' . e(logo_url()) . '" alt="' . e($alt) . '" width="' . $size . '" height="' . $size . '" class="logo-round ' . e($class) . '">';
+}
+
 function status_badge(string $status): string
 {
     $map = [
@@ -56,9 +73,10 @@ function form_field(string $name, array $f, mixed $value = null): string
         'checkbox' => '<div class="form-check form-switch mt-1"><input class="form-check-input" type="checkbox" value="1"' . $attrs . ($val ? ' checked' : '') . '>'
             . '<label class="form-check-label" for="' . e($id) . '">' . e($f['check_label'] ?? $label) . '</label></div>',
         'file' => '<div class="file-field" data-file-field="' . e($name) . '"><div class="file-preview" data-preview-for="' . e($name) . '"></div>'
-            . '<input type="file" class="form-control" id="' . e($id) . '" name="' . e($name) . '" accept="' . e(Upload::accept($f['upload'])) . '">'
+            . '<input type="file" class="form-control" id="' . e($id) . '" name="' . e($name) . '" accept="' . e(Upload::accept($f['upload'])) . '"'
+            . (in_array($f['upload'], ['video', 'audio'], true) ? ' data-chunked="' . e($f['upload']) . '" data-dir="' . e($f['dir'] ?? 'videos') . '"' : '') . '>'
             . '<label class="form-check small mt-1 d-none" data-remove-for="' . e($name) . '"><input type="checkbox" class="form-check-input" name="remove_' . e($name) . '" value="1"> Remove current file</label>'
-            . '<div class="form-text">Max ' . ($f['upload'] === 'video' ? (int) setting('max_video_upload_mb', '200') : UPLOAD_RULES[$f['upload']]['max_mb']) . ' MB · ' . e(strtoupper(implode(', ', array_keys(UPLOAD_RULES[$f['upload']]['types'])))) . '</div></div>',
+            . '<div class="form-text">Max ' . Upload::maxMb($f['upload']) . ' MB · ' . e(strtoupper(implode(', ', array_keys(UPLOAD_RULES[$f['upload']]['types'])))) . '</div></div>',
         'static' => '<div class="form-control-plaintext static-field" data-static="' . e($name) . '"></div>',
         default => '<input type="' . e($type) . '" class="form-control" value="' . e($val) . '"' . $attrs . ($type === 'number' ? ' step="' . e($f['step'] ?? 'any') . '"' : '') . '>',
     };
@@ -82,14 +100,40 @@ function section_heading(string $eyebrow, string $title, string $sub = '', strin
         . '<h2>' . e($title) . '</h2>' . ($sub ? '<p>' . e($sub) . '</p>' : '') . '</div>';
 }
 
-function page_banner(string $title, string $subtitle = '', string $image = 'assets/images/placeholders/hero-poster.svg', array $crumbs = []): string
+/**
+ * Muted, looping background <video>. Sources are attached by main.js so visitors on
+ * data-saver / reduced motion only download the poster.
+ */
+function bg_video_tag(?array $hero, string $class = 'bg-video'): string
 {
+    if (!HeroVideo::hasVideo($hero)) {
+        return '';
+    }
+    $poster = media_url($hero['poster'], 'assets/images/placeholders/hero-poster.svg');
+    return '<video class="' . e($class) . '" autoplay muted loop playsinline preload="none" poster="' . e($poster) . '" aria-hidden="true" tabindex="-1" data-bg-video'
+        . ' data-mobile-src="' . e($hero['video_mobile'] ? media_url($hero['video_mobile']) : '') . '">'
+        . ($hero['video_webm'] ? '<source data-src="' . e(media_url($hero['video_webm'])) . '" type="video/webm">' : '')
+        . ($hero['video_mp4'] ? '<source data-src="' . e(media_url($hero['video_mp4'])) . '" type="video/mp4">' : '')
+        . '</video>';
+}
+
+/**
+ * Inner-page banner. When $heroPage has an active video (Admin → Hero Video),
+ * it plays behind the title; otherwise the image is shown.
+ */
+function page_banner(string $title, string $subtitle = '', string $image = 'assets/images/placeholders/hero-poster.svg', array $crumbs = [], string $heroPage = ''): string
+{
+    $hero = $heroPage ? HeroVideo::active($heroPage) : null;
+    if ($hero && $hero['poster']) {
+        $image = $hero['poster'];
+    }
+    $video = bg_video_tag($hero);
     $crumbHtml = '<nav aria-label="Breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="' . e(url()) . '">Home</a></li>';
     foreach ($crumbs as $label => $href) {
         $crumbHtml .= $href ? '<li class="breadcrumb-item"><a href="' . e(url($href)) . '">' . e($label) . '</a></li>' : '';
     }
     $crumbHtml .= '<li class="breadcrumb-item active" aria-current="page">' . e($title) . '</li></ol></nav>';
-    return '<section class="page-banner" style="--banner:url(\'' . e(media_url($image)) . '\')"><div class="container">'
+    return '<section class="page-banner' . ($video ? ' has-video' : '') . '" style="--banner:url(\'' . e(media_url($image)) . '\')">' . $video . '<div class="container">'
         . '<h1 data-aos="fade-up">' . e($title) . '</h1>' . ($subtitle ? '<p data-aos="fade-up" data-aos-delay="100">' . e($subtitle) . '</p>' : '')
         . '<div data-aos="fade-up" data-aos-delay="150">' . $crumbHtml . '</div></div></section>';
 }

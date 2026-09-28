@@ -13,7 +13,7 @@ RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phar
 </FilesMatch>
 
 # Only serve whitelisted media types
-<FilesMatch "(?i)\.(jpe?g|png|webp|mp4|webm|mp3|m4a|pdf)$">
+<FilesMatch "(?i)\.(jpe?g|png|webp|mp4|m4v|webm|mp3|m4a|pdf)$">
     Require all granted
     <IfModule mod_headers.c>
         Header set X-Content-Type-Options "nosniff"

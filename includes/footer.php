@@ -7,7 +7,7 @@ $footerMinistries = DB::all("SELECT name, slug FROM departments WHERE status = '
   <div class="container">
     <div class="row g-5">
       <div class="col-lg-4">
-        <a class="brand mb-3" href="<?= e(url()) ?>"><img src="<?= e(media_url(setting('logo'), 'assets/images/logo.svg')) ?>" alt="" width="58" height="58" loading="lazy">
+        <a class="brand mb-3" href="<?= e(url()) ?>"><?= logo_img(64) ?>
           <span class="brand-text"><strong><?= e(setting('church_short_name')) ?></strong><small><?= e(trim(str_ireplace(setting('church_short_name'), '', setting('church_name')))) ?></small></span></a>
         <p class="footer-about"><?= e(setting('footer_text')) ?></p>
         <p class="footer-motto"><?= e(setting('church_motto')) ?></p>

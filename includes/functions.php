@@ -407,6 +407,7 @@ function send_security_headers(): void
 // ---------------------------------------------------------------------
 function slugify(string $text): string
 {
+    $text = str_replace(["'", '’'], '', $text); // "King's" → "kings"
     $text = strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text) ?: $text), '-'));
     return $text !== '' ? $text : bin2hex(random_bytes(4));
 }

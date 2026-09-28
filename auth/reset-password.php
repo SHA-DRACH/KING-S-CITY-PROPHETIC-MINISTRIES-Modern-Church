@@ -25,14 +25,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $reset) {
 auth_layout_start('Reset Password', 'Choose a new password', $reset ? 'Hello ' . $reset['first_name'] . ', enter your new password below.' : '');
 if (!$reset): ?>
   <div class="alert alert-danger">This reset link is invalid or has expired.</div>
-  <a class="btn btn-navy w-100" href="<?= e(url('auth/forgot-password.php')) ?>">Request a new link</a>
+  <a class="auth-btn" href="<?= e(url('auth/forgot-password.php')) ?>">Request a new link</a>
 <?php else: ?>
 <form method="post" data-once novalidate>
   <?= csrf_field() ?><input type="hidden" name="token" value="<?= e($token) ?>">
   <?= password_input('password', 'New password', 'new-password') ?>
   <?= password_input('password_confirm', 'Confirm new password', 'new-password') ?>
   <p class="small text-muted">At least <?= (int) config('security.password_min_length') ?> characters, including letters and numbers.</p>
-  <button type="submit" class="btn btn-gold btn-lg w-100">Reset Password</button>
+  <button type="submit" class="auth-btn">Reset Password</button>
 </form>
 <?php endif;
 auth_layout_end();

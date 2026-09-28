@@ -14,6 +14,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/permissions.php';
 require_once __DIR__ . '/upload.php';
+require_once __DIR__ . '/image.php';
 require_once __DIR__ . '/components.php';
 if (defined('ADMIN_AREA')) {
     require_once __DIR__ . '/../admin/partials/layout.php';
@@ -51,6 +52,14 @@ spl_autoload_register(function (string $class) {
 
 send_security_headers();
 start_secure_session();
+
+// A request larger than post_max_size arrives with an empty $_POST; explain it
+// instead of failing with a confusing "session expired" CSRF error.
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && empty($_POST) && empty($_FILES) && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+    $limit = ini_get('post_max_size');
+    $msg = "The upload is too large for the server (limit $limit). Please choose smaller files or fewer at once.";
+    is_ajax() ? json_response(['ok' => false, 'message' => $msg], 413) : render_error_page(413, 'Upload Too Large', $msg);
+}
 
 // Every state-changing request must carry a valid CSRF token.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !defined('SKIP_CSRF')) {

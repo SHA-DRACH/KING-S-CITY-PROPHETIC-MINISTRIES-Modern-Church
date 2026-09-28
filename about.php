@@ -7,7 +7,7 @@ $mapQuery = rawurlencode(setting('map_query', church_address_line()));
 
 $page = ['title' => 'About Us', 'nav' => 'about', 'description' => $blocks['our-story']['meta_description'] ?? null];
 require __DIR__ . '/includes/header.php';
-echo page_banner('About Us', setting('church_tagline') . ' · ' . setting('city'));
+echo page_banner('About Us', setting('church_tagline') . ' · ' . setting('city'), 'assets/images/placeholders/hero-poster.svg', [], 'about');
 ?>
 
 <section class="section">

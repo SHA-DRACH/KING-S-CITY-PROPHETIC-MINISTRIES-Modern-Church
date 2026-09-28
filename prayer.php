@@ -5,7 +5,7 @@ $wall = setting('prayer_wall_enabled', '1') === '1' ? PrayerRequest::publicWall(
 
 $page = ['title' => 'Prayer Request', 'nav' => 'prayer', 'description' => 'Send a prayer request to the prayer team of ' . setting('church_name') . '. Your request stays private unless you choose to share it.'];
 require __DIR__ . '/includes/header.php';
-echo page_banner('Prayer Request', 'How can we pray for you?');
+echo page_banner('Prayer Request', 'How can we pray for you?', 'assets/images/placeholders/prayer.svg', [], 'prayer');
 ?>
 <section class="section">
   <div class="container">

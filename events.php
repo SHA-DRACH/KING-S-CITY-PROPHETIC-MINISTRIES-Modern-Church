@@ -30,7 +30,7 @@ foreach ($tab === 'upcoming' ? $events : [] as $ev) {
 
 $page = ['title' => 'Events', 'nav' => 'events', 'description' => 'Upcoming worship services, conferences, crusades and programs at ' . setting('church_name') . '.', 'schema' => $schema];
 require __DIR__ . '/includes/header.php';
-echo page_banner('Events', 'Join us for life-changing moments.');
+echo page_banner('Events', 'Join us for life-changing moments.', 'assets/images/placeholders/hero-poster.svg', [], 'events');
 ?>
 <section class="section">
   <div class="container">

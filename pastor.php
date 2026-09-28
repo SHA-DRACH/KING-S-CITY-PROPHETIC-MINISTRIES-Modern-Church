@@ -14,7 +14,8 @@ $schema = [[
 $page = ['title' => $pastor['name'], 'nav' => 'pastor', 'description' => $pastor['short_bio'], 'image' => $pastor['photo'], 'schema' => $schema, 'libs' => ['glightbox']];
 require __DIR__ . '/includes/header.php';
 ?>
-<section class="pastor-hero">
+<?php $pastorHero = HeroVideo::active('pastor'); ?>
+<section class="pastor-hero<?= HeroVideo::hasVideo($pastorHero) ? ' has-video' : '' ?>"><?= bg_video_tag($pastorHero) ?>
   <div class="container">
     <div class="row align-items-center g-5">
       <div class="col-lg-5" data-aos="zoom-in"><div class="pastor-frame large"><img src="<?= e(media_url($pastor['photo'], 'assets/images/placeholders/pastor.svg')) ?>" alt="Portrait of <?= e($pastor['name']) ?>" width="520" height="620"></div></div>
@@ -75,7 +76,7 @@ require __DIR__ . '/includes/header.php';
     <?= section_heading('Gallery', 'In Ministry') ?>
     <div class="gallery-grid">
       <?php foreach ($photos as $i => $g): ?>
-        <a class="gallery-item glightbox" href="<?= e(media_url($g['file_path'])) ?>" data-gallery="pastor" data-title="<?= e($g['title']) ?>" data-aos="zoom-in" data-aos-delay="<?= $i * 60 ?>"><img src="<?= e(media_url($g['file_path'])) ?>" alt="<?= e($g['title']) ?>" loading="lazy" width="400" height="300"><span class="gm-overlay"><i class="fa-solid fa-expand" aria-hidden="true"></i></span></a>
+        <a class="gallery-item glightbox" href="<?= e(media_url($g['file_path'])) ?>" data-gallery="pastor" data-title="<?= e($g['title']) ?>" data-aos="zoom-in" data-aos-delay="<?= $i * 60 ?>"><img src="<?= e(media_url($g['thumb'])) ?>" alt="<?= e($g['title'] ?: 'Ministry photo') ?>" loading="lazy" width="400" height="300"><span class="gm-overlay"><i class="fa-solid fa-expand" aria-hidden="true"></i></span></a>
       <?php endforeach; ?>
     </div>
   </div>

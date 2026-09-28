@@ -8,7 +8,7 @@ $typeLabels = ['mobile_money' => 'Mobile Money', 'bank_transfer' => 'Bank Transf
 
 $page = ['title' => 'Give', 'nav' => 'give', 'description' => setting('giving_intro')];
 require __DIR__ . '/includes/header.php';
-echo page_banner('Give', setting('giving_intro', 'Your generosity changes lives.'), setting('giving_image') ?: 'assets/images/placeholders/prayer.svg');
+echo page_banner('Give', setting('giving_intro', 'Your generosity changes lives.'), setting('giving_image') ?: 'assets/images/placeholders/prayer.svg', [], 'giving');
 ?>
 <section class="section">
   <div class="container">

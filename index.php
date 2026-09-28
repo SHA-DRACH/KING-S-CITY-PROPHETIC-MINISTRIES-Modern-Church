@@ -283,7 +283,7 @@ require __DIR__ . '/includes/header.php';
       <?php foreach ($gallery as $i => $g):
           $isVideo = $g['media_type'] === 'video' && $g['video_url']; ?>
         <a class="gm-item gm-<?= $i ?> glightbox" href="<?= e($isVideo ? $g['video_url'] : media_url($g['file_path'])) ?>" data-gallery="home" data-title="<?= e($g['title']) ?>" data-description="<?= e($g['caption']) ?>" data-aos="zoom-in" data-aos-delay="<?= $i * 60 ?>">
-          <img src="<?= e(media_url($g['file_path'])) ?>" alt="<?= e($g['title']) ?>" loading="lazy" width="500" height="400">
+          <img src="<?= e(media_url($g['thumb'])) ?>" alt="<?= e($g['title'] ?: 'Church photo') ?>" loading="lazy" width="500" height="400">
           <span class="gm-overlay"><i class="fa-solid <?= $isVideo ? 'fa-play' : 'fa-expand' ?>" aria-hidden="true"></i></span>
         </a>
       <?php endforeach; ?>

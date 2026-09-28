@@ -6,7 +6,7 @@ $subject = mb_substr((string) ($_GET['subject'] ?? ''), 0, 200);
 
 $page = ['title' => 'Contact Us', 'nav' => 'contact', 'description' => 'Contact ' . setting('church_name') . ' — ' . church_address_line() . '. Phone ' . setting('phone') . '.'];
 require __DIR__ . '/includes/header.php';
-echo page_banner('Contact Us', 'We would love to hear from you.');
+echo page_banner('Contact Us', 'We would love to hear from you.', 'assets/images/placeholders/hero-poster.svg', [], 'contact');
 ?>
 <section class="section">
   <div class="container">

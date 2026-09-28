@@ -6,7 +6,7 @@ $testimonies = Testimony::published($p['per_page'], $p['offset']);
 
 $page = ['title' => 'Testimonies', 'nav' => 'testimonies', 'description' => 'Testimonies of God\'s faithfulness from the ' . setting('church_name') . ' family.'];
 require __DIR__ . '/includes/header.php';
-echo page_banner('Testimonies', 'Declaring the goodness of God.');
+echo page_banner('Testimonies', 'Declaring the goodness of God.', 'assets/images/placeholders/hero-poster.svg', [], 'testimonies');
 ?>
 <section class="section">
   <div class="container">

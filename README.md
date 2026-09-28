@@ -98,9 +98,15 @@ the prayer wall (first name + initial, never contact details). Testimonies need 
 
 * **Photos & video**: the site ships with branded placeholder artwork. Upload real photos in Gallery,
   Sermons, Events, Departments, Pastor, Leadership and *Settings → Homepage* (welcome and giving images).
-* **Hero video**: *Admin → Website → Hero Video*. Upload a short (10–30 s), silent 1080p MP4 (+ optional WebM
-  and a lighter 720p mobile version) and a poster image. Only one video is active at a time. Visitors with
-  data-saver or reduced-motion see the poster instead.
+* **Page videos**: *Admin → Website → Hero Video*. Pick the page (Home, About, Sermons, Events, …), then
+  upload an MP4 (30 s or longer is fine) plus a poster image. Each page has one active video; large files
+  upload in 5 MB chunks with a progress bar (limit set in *Settings → System*, default 1024 MB).
+  Visitors with data-saver or reduced-motion see the poster instead.
+* **Gallery**: *Admin → Gallery*. Choose a day or a month, then select or drag in as many photos as you like;
+  no captions are needed. **Photo Downloads** albums let members find the service they attended and download
+  their photos (one at a time or all as a ZIP). **Event Gallery** albums are the reference gallery.
+  Thumbnails are generated automatically and phone photos are rotated upright.
+* **Upgrading an existing install**: run the files in `migrations/` once, oldest first.
 * **Giving methods**: *Admin → Giving → Payment Methods*. The seeded accounts say "Configure in admin".
   Nothing is hard-coded. Add an online gateway later by implementing `PaymentGatewayDriver`
   (`models/PaymentGateway.php`) without redesigning the page.

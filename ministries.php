@@ -5,7 +5,7 @@ $ministries = Department::publicList();
 
 $page = ['title' => 'Ministries', 'nav' => 'ministries', 'description' => 'Discover the ministries of ' . setting('church_name') . ' — worship, prayer, youth, women, men, children, evangelism and more.'];
 require __DIR__ . '/includes/header.php';
-echo page_banner('Our Ministries', 'Find your place to grow, serve and belong.');
+echo page_banner('Our Ministries', 'Find your place to grow, serve and belong.', 'assets/images/placeholders/hero-poster.svg', [], 'ministries');
 ?>
 <section class="section">
   <div class="container">

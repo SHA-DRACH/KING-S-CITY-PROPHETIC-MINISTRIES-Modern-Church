@@ -21,19 +21,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect('admin/login.php' . (!empty($_POST['next']) ? '?next=' . rawurlencode((string) $_POST['next']) : ''));
 }
 
-auth_layout_start('Sign In', 'Welcome back', 'Sign in to the church management dashboard.');
+auth_layout_start('Sign In', 'Staff Sign In', 'Welcome back. Sign in to manage the ministry.');
 ?>
 <form method="post" action="<?= e(url('admin/login.php')) ?>" data-once novalidate>
   <?= csrf_field() ?>
   <input type="hidden" name="next" value="<?= e((string) ($_GET['next'] ?? '')) ?>">
-  <div class="mb-3">
-    <label class="form-label" for="email">Email address</label>
-    <input type="email" class="form-control form-control-lg" id="email" name="email" value="<?= e(old('email')) ?>" required autocomplete="username" autofocus>
-  </div>
+  <?= auth_input('email', 'Email address', 'fa-envelope', 'email', 'username', old('email'), true) ?>
   <?= password_input('password', 'Password') ?>
-  <div class="d-flex justify-content-end mb-4"><a class="small" href="<?= e(url('auth/forgot-password.php')) ?>">Forgot password?</a></div>
-  <button type="submit" class="btn btn-gold btn-lg w-100"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+  <div class="auth-row"><a href="<?= e(url('auth/forgot-password.php')) ?>">Forgot password?</a></div>
+  <button type="submit" class="auth-btn"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Sign In</button>
 </form>
-<p class="small text-muted mt-4 mb-0"><i class="fa-solid fa-shield-halved"></i> Protected area. Repeated failed attempts are temporarily blocked and every sign-in is logged.</p>
 <?php
 auth_layout_end();

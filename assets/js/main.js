@@ -62,8 +62,11 @@
      Sources are attached by JS so that visitors on data-saver or with reduced
      motion only download the poster; small screens get the lighter mobile file. */
   function initHeroVideo() {
-    const video = $('.hero-video');
-    if (!video) { return; }
+    // Homepage hero plus any page banner that has its own video
+    $$('video.hero-video, video[data-bg-video]').forEach(setupBgVideo);
+  }
+
+  function setupBgVideo(video) {
     const conn = navigator.connection || {};
     if (reduceMotion || conn.saveData || /(^|-)2g$/.test(conn.effectiveType || '')) {
       video.remove();
@@ -87,15 +90,16 @@
     const tryPlay = () => { const p = video.play(); p && p.catch(() => {}); };
     tryPlay();
 
-    // Pause when off-screen to save battery/CPU
+    // Pause when off-screen to save battery/CPU; resume when the visitor returns to the tab
     let userPaused = false;
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && !userPaused) { tryPlay(); } });
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(entries => entries.forEach(e => {
         if (userPaused) { return; }
         e.isIntersecting ? tryPlay() : video.pause();
       }), { threshold: .1 }).observe(video);
     }
-    const btn = $('.hero-pause');
+    const btn = video.classList.contains('hero-video') ? $('.hero-pause') : null;
     btn && btn.addEventListener('click', () => {
       userPaused = !video.paused;
       if (video.paused) { tryPlay(); } else { video.pause(); }

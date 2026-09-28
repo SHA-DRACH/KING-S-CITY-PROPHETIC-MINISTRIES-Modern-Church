@@ -135,7 +135,7 @@ admin_header('Settings', $nav);
         <?php foreach ($fields as $key => $f):
             if (($f['type'] ?? '') === 'file'): ?>
               <div class="col-md-<?= (int) ($f['col'] ?? 12) ?>"><label class="form-label" for="f_<?= e($key) ?>"><?= e($f['label']) ?></label>
-                <div class="d-flex align-items-center gap-3"><img src="<?= e(media_url(setting($key), 'assets/images/logo.svg')) ?>" alt="Current <?= e(strtolower($f['label'])) ?>" class="setting-preview">
+                <div class="d-flex align-items-center gap-3"><img src="<?= e(media_url(setting($key), 'assets/images/logo.jpg')) ?>" alt="Current <?= e(strtolower($f['label'])) ?>" class="setting-preview">
                 <input type="file" class="form-control" id="f_<?= e($key) ?>" name="<?= e($key) ?>" accept="<?= e(Upload::accept('image')) ?>"></div>
                 <div class="invalid-feedback" data-error-for="<?= e($key) ?>"></div></div>
             <?php else:

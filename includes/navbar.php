@@ -28,7 +28,7 @@ $restName = trim(str_ireplace($shortName, '', setting('church_name')));
   <nav class="main-nav" aria-label="Main navigation">
     <div class="container d-flex align-items-center justify-content-between">
       <a class="brand" href="<?= e(url()) ?>" aria-label="<?= e(setting('church_name')) ?> — Home">
-        <img src="<?= e(media_url(setting('logo'), 'assets/images/logo.svg')) ?>" alt="" width="54" height="54">
+        <?= logo_img(56) ?>
         <span class="brand-text"><strong><?= e($shortName) ?></strong><small><?= e($restName) ?></small></span>
       </a>
       <ul class="nav-links d-none d-xl-flex">
@@ -40,6 +40,10 @@ $restName = trim(str_ireplace($shortName, '', setting('church_name')));
         <a class="btn btn-live d-none d-sm-inline-flex" href="<?= e($liveUrl) ?>"<?= setting('live_stream_url') ? ' target="_blank" rel="noopener"' : '' ?>>
           <span class="live-dot<?= $isLive ? ' on' : '' ?>" aria-hidden="true"></span> <?= $isLive ? 'Live Now' : 'Watch Live' ?>
         </a>
+        <?php $staff = current_user(); ?>
+        <a class="btn btn-login" href="<?= e(url($staff ? 'admin/dashboard.php' : 'admin/login.php')) ?>" rel="nofollow">
+          <i class="fa-solid <?= $staff ? 'fa-gauge-high' : 'fa-user-lock' ?>" aria-hidden="true"></i><span class="d-none d-md-inline"><?= $staff ? 'Dashboard' : 'Login' ?></span><span class="visually-hidden d-md-none"><?= $staff ? 'Dashboard' : 'Staff login' ?></span>
+        </a>
         <button class="menu-toggle d-xl-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNav" aria-controls="mobileNav" aria-label="Open menu">
           <span></span><span></span><span></span>
         </button>
@@ -50,7 +54,7 @@ $restName = trim(str_ireplace($shortName, '', setting('church_name')));
 
 <div class="offcanvas offcanvas-end mobile-drawer" tabindex="-1" id="mobileNav" aria-labelledby="mobileNavLabel">
   <div class="offcanvas-header">
-    <a class="brand" href="<?= e(url()) ?>"><img src="<?= e(media_url(setting('logo'), 'assets/images/logo.svg')) ?>" alt="" width="44" height="44"><span class="brand-text"><strong id="mobileNavLabel"><?= e($shortName) ?></strong><small><?= e($restName) ?></small></span></a>
+    <a class="brand" href="<?= e(url()) ?>"><?= logo_img(46) ?><span class="brand-text"><strong id="mobileNavLabel"><?= e($shortName) ?></strong><small><?= e($restName) ?></small></span></a>
     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close menu"></button>
   </div>
   <div class="offcanvas-body">
@@ -61,6 +65,7 @@ $restName = trim(str_ireplace($shortName, '', setting('church_name')));
       <?php endforeach; ?>
     </ul>
     <a class="btn btn-live w-100 justify-content-center mt-3" href="<?= e($liveUrl) ?>"<?= setting('live_stream_url') ? ' target="_blank" rel="noopener"' : '' ?>><span class="live-dot<?= $isLive ? ' on' : '' ?>" aria-hidden="true"></span> <?= $isLive ? 'Live Now' : 'Watch Live' ?></a>
+    <a class="btn btn-login w-100 justify-content-center mt-2" href="<?= e(url($staff ? 'admin/dashboard.php' : 'admin/login.php')) ?>" rel="nofollow"><i class="fa-solid <?= $staff ? 'fa-gauge-high' : 'fa-user-lock' ?>" aria-hidden="true"></i> <?= $staff ? 'Go to Dashboard' : 'Staff Login' ?></a>
     <div class="drawer-contact">
       <p><i class="fa-solid fa-location-dot" aria-hidden="true"></i> <?= e(church_address_line()) ?></p>
       <p><i class="fa-solid fa-phone" aria-hidden="true"></i> <a href="tel:<?= e(preg_replace('/[^\d+]/', '', setting('phone'))) ?>"><?= e(setting('phone')) ?></a></p>

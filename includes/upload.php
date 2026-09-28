@@ -21,7 +21,6 @@ final class Upload
     public static function store(array $file, string $type, string $subdir, string $module = ''): string
     {
         $rules = UPLOAD_RULES[$type] ?? throw new UploadException('Unsupported upload type.');
-        $subdir = preg_replace('/[^a-z0-9_-]/', '', strtolower($subdir)) ?: 'documents';
 
         if (!isset($file['error']) || is_array($file['error'])) {
             throw new UploadException('Invalid upload.');
@@ -37,22 +36,37 @@ final class Upload
         if (!is_uploaded_file($file['tmp_name'])) {
             throw new UploadException('Invalid upload source.');
         }
+        return self::validateAndSave($file['tmp_name'], (string) $file['name'], (int) $file['size'], $type, $subdir, $module, true);
+    }
 
-        $maxMb = $type === 'video' ? max(10, (int) setting('max_video_upload_mb', (string) $rules['max_mb'])) : $rules['max_mb'];
-        if ($file['size'] <= 0 || $file['size'] > $maxMb * 1024 * 1024) {
+    public static function maxMb(string $type): int
+    {
+        $rules = UPLOAD_RULES[$type];
+        return $type === 'video' ? max(10, (int) setting('max_video_upload_mb', (string) $rules['max_mb'])) : $rules['max_mb'];
+    }
+
+    /**
+     * Shared validation for normal and chunked uploads: size, extension whitelist,
+     * real MIME type (finfo) and image integrity, then a random filename.
+     */
+    public static function validateAndSave(string $src, string $originalName, int $size, string $type, string $subdir, string $module = '', bool $isHttpUpload = false): string
+    {
+        $rules = UPLOAD_RULES[$type] ?? throw new UploadException('Unsupported upload type.');
+        $subdir = preg_replace('/[^a-z0-9_\/-]/', '', strtolower($subdir)) ?: 'documents';
+
+        $maxMb = self::maxMb($type);
+        if ($size <= 0 || $size > $maxMb * 1024 * 1024) {
             throw new UploadException("The file must be smaller than {$maxMb} MB.");
         }
-
-        $ext = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));
+        $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
         if (!isset($rules['types'][$ext])) {
             throw new UploadException('Allowed file types: ' . strtoupper(implode(', ', array_keys($rules['types']))) . '.');
         }
-
-        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']) ?: '';
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($src) ?: '';
         if (!in_array($mime, $rules['types'][$ext], true)) {
-            throw new UploadException('The file content does not match its extension.');
+            throw new UploadException('The file content does not match its extension' . (config('app.debug') ? " (detected $mime)." : '.'));
         }
-        if ($type === 'image' && @getimagesize($file['tmp_name']) === false) {
+        if ($type === 'image' && @getimagesize($src) === false) {
             throw new UploadException('The image appears to be corrupted.');
         }
 
@@ -60,8 +74,9 @@ final class Upload
         if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
             throw new UploadException('Upload folder is not writable.');
         }
-        $name = date('Ymd') . '-' . bin2hex(random_bytes(12)) . '.' . $ext;
-        if (!move_uploaded_file($file['tmp_name'], "$dir/$name")) {
+        $name = date('Ymd') . '-' . bin2hex(random_bytes(12)) . '.' . ($ext === 'jpeg' ? 'jpg' : $ext);
+        $ok = $isHttpUpload ? move_uploaded_file($src, "$dir/$name") : rename($src, "$dir/$name");
+        if (!$ok) {
             throw new UploadException('Could not save the uploaded file.');
         }
         @chmod("$dir/$name", 0644);
@@ -69,19 +84,32 @@ final class Upload
         $relative = "uploads/$subdir/$name";
         DB::insert('media', [
             'file_path'     => $relative,
-            'original_name' => mb_substr(basename((string) $file['name']), 0, 255),
+            'original_name' => mb_substr(basename($originalName), 0, 255),
             'mime_type'     => $mime,
             'file_type'     => $type,
-            'size_bytes'    => (int) $file['size'],
+            'size_bytes'    => $size,
             'module'        => $module ?: $subdir,
             'uploaded_by'   => user_id(),
         ]);
         return $relative;
     }
 
-    /** Store $_FILES[$field] if a file was chosen; returns null when the field is empty. */
+    /**
+     * Store $_FILES[$field] if a file was chosen; returns null when the field is empty.
+     * Large files arrive in chunks first (admin/upload-chunk.php); the form then only
+     * sends "<field>__chunked" = a one-time token proving this user uploaded it.
+     */
     public static function fromField(string $field, string $type, string $subdir, string $module = ''): ?string
     {
+        $token = $_POST[$field . '__chunked'] ?? '';
+        if (is_string($token) && $token !== '') {
+            $done = $_SESSION['chunked'][$token] ?? null;
+            if (!$done || $done['type'] !== $type || (int) $done['user'] !== (int) user_id()) {
+                throw new UploadException('The uploaded file could not be verified. Please upload it again.');
+            }
+            unset($_SESSION['chunked'][$token]);
+            return $done['path'];
+        }
         $f = $_FILES[$field] ?? null;
         if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
             return null;

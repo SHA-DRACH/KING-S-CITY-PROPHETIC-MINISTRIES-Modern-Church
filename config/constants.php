@@ -9,7 +9,7 @@ define('APP_VERSION', '1.0.0');
 // Upload rules: extension => allowed MIME types, grouped by file type.
 const UPLOAD_RULES = [
     'image' => [
-        'max_mb' => 8,
+        'max_mb' => 20,
         'types'  => [
             'jpg'  => ['image/jpeg'],
             'jpeg' => ['image/jpeg'],
@@ -18,10 +18,12 @@ const UPLOAD_RULES = [
         ],
     ],
     'video' => [
-        'max_mb' => 200, // overridden by the max_video_upload_mb system setting
+        'max_mb' => 1024, // overridden by the max_video_upload_mb system setting
         'types'  => [
-            'mp4'  => ['video/mp4'],
-            'webm' => ['video/webm'],
+            // Phone/camera MP4s are often reported as QuickTime or M4V containers
+            'mp4'  => ['video/mp4', 'application/mp4', 'video/x-m4v', 'video/quicktime'],
+            'm4v'  => ['video/mp4', 'video/x-m4v'],
+            'webm' => ['video/webm', 'audio/webm'],
         ],
     ],
     'audio' => [
@@ -37,6 +39,21 @@ const UPLOAD_RULES = [
             'pdf' => ['application/pdf'],
         ],
     ],
+];
+
+// Public pages that can have their own background (hero) video
+const HERO_PAGES = [
+    'home'        => 'Homepage',
+    'about'       => 'About',
+    'ministries'  => 'Ministries',
+    'sermons'     => 'Sermons',
+    'events'      => 'Events',
+    'pastor'      => 'Our Pastor',
+    'giving'      => 'Give',
+    'gallery'     => 'Gallery',
+    'prayer'      => 'Prayer Request',
+    'testimonies' => 'Testimonies',
+    'contact'     => 'Contact',
 ];
 
 const PRAYER_STATUSES = [

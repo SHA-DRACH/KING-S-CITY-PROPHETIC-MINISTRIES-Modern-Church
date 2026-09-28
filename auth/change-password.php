@@ -35,8 +35,8 @@ auth_layout_start('Change Password', $forced ? 'Set your own password' : 'Change
   <?= password_input('password', 'New password', 'new-password') ?>
   <?= password_input('password_confirm', 'Confirm new password', 'new-password') ?>
   <p class="small text-muted">At least <?= (int) config('security.password_min_length') ?> characters, including letters and numbers.</p>
-  <button type="submit" class="btn btn-gold btn-lg w-100"><i class="fa-solid fa-lock"></i> Save Password</button>
+  <button type="submit" class="auth-btn"><i class="fa-solid fa-lock" aria-hidden="true"></i> Save Password</button>
 </form>
-<?php if (!$forced): ?><p class="text-center mt-4 mb-0"><a class="small" href="<?= e(url('admin/dashboard.php')) ?>">Back to dashboard</a></p>
+<?php if (!$forced): ?><p class="auth-row justify-content-center mt-3 mb-0"><a href="<?= e(url('admin/dashboard.php')) ?>">Back to dashboard</a></p>
 <?php else: ?><form method="post" action="<?= e(url('auth/logout.php')) ?>" class="text-center mt-4"><?= csrf_field() ?><button class="btn btn-link btn-sm text-muted">Sign out</button></form><?php endif;
 auth_layout_end();
