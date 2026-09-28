@@ -1,0 +1,21 @@
+# Uploaded files are data only — never executable.
+Options -Indexes -ExecCGI
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .pl .py .cgi .asp .aspx .jsp .sh
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phar
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+
+# Block any script-like file outright
+<FilesMatch "(?i)\.(php\d?|phtml|phar|pl|py|cgi|asp|aspx|jsp|sh|htaccess|html?|svg|js)$">
+    Require all denied
+</FilesMatch>
+
+# Only serve whitelisted media types
+<FilesMatch "(?i)\.(jpe?g|png|webp|mp4|webm|mp3|m4a|pdf)$">
+    Require all granted
+    <IfModule mod_headers.c>
+        Header set X-Content-Type-Options "nosniff"
+    </IfModule>
+</FilesMatch>

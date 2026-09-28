@@ -1,0 +1,51 @@
+# King's City Prophetic Ministries — Apache configuration (XAMPP / shared hosting)
+
+Options -Indexes
+DirectoryIndex index.php
+ErrorDocument 404 /kings-city/404.php
+# ^ On the live server (site at the domain root) change this to: ErrorDocument 404 /404.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Force HTTPS in production (uncomment on the live server)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # SEO endpoints
+    RewriteRule ^sitemap\.xml$ sitemap.php [L]
+    RewriteRule ^robots\.txt$ robots.php [L]
+
+    # Never serve internals directly
+    RewriteRule ^(config|controllers|models|includes|tools|admin/partials)(/|$) - [F,L]
+    RewriteRule (^|/)\.(?!well-known) - [F,L]
+    RewriteRule \.(sql|md|log|ini|sh|bak|dist)$ - [F,L]
+</IfModule>
+
+# Browser caching for static assets
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType video/mp4 "access plus 1 month"
+    ExpiresByType video/webm "access plus 1 month"
+    ExpiresByType audio/mpeg "access plus 1 month"
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+# Compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml application/javascript application/json application/xml image/svg+xml
+</IfModule>
+
+# PHP upload limits for sermon / hero videos (mod_php only; on PHP-FPM set these in php.ini)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 256M
+    php_value post_max_size 260M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
